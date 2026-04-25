@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "scores" ADD COLUMN     "classScore" DOUBLE PRECISION,
+ADD COLUMN     "examScore" DOUBLE PRECISION,
+ADD COLUMN     "midTermScore" DOUBLE PRECISION;

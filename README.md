@@ -19,11 +19,31 @@ NODE_ENV=development
 # Database (PostgreSQL - Neon or local)
 DATABASE_URL=postgresql://user:password@localhost:5432/schoolflow
 
+# Redis (recommended for distributed OTP throttling)
+REDIS_URL=redis://localhost:6379
+
 # JWT Secret (use a strong random string)
 JWT_SECRET=your-secret-key-here
 
 # Sentry (Error tracking and performance monitoring)
 SENTRY_DSN="your-sentry-dsn-here"
+
+# SMS provider credentials
+SMS_USERNAME=your-sms-username
+SMS_PASSWORD=your-sms-password
+SMS_SENDER_ID=KGM
+
+# OTP security throttling (milliseconds for *_MS)
+OTP_SEND_WINDOW_MS=600000
+OTP_SEND_COOLDOWN_MS=60000
+OTP_VERIFY_WINDOW_MS=600000
+OTP_SEND_IP_LIMIT=20
+OTP_SEND_USER_LIMIT=5
+OTP_VERIFY_IP_LIMIT=30
+OTP_VERIFY_CHALLENGE_LIMIT=5
+OTP_SEND_IP_BLOCK_MS=900000
+OTP_SEND_USER_BLOCK_MS=600000
+OTP_VERIFY_BLOCK_MS=900000
 ```
 
 ### Sentry Setup

@@ -59,6 +59,9 @@ async function main() {
     const superAdminPasswordHash = await bcrypt.hash("SuperAdmin@123", 10);
     const schoolAdminPasswordHash = await bcrypt.hash("SchoolAdmin@123", 10);
     const accountantPasswordHash = await bcrypt.hash("Accountant@123", 10);
+    const staffPasswordHash = await bcrypt.hash("Staff@123", 10);
+    const viewerPasswordHash = await bcrypt.hash("Viewer@123", 10);
+    const teacherPasswordHash = await bcrypt.hash("Teacher@123", 10);
 
     await prisma.adminUser.createMany({
         data: [
@@ -82,6 +85,20 @@ async function main() {
                 role: "ACCOUNTANT",
                 schoolId: school1.id,
             },
+            {
+                name: "Riverdale Staff",
+                email: "staff@riverdalehigh.edu",
+                passwordHash: staffPasswordHash,
+                role: "STAFF",
+                schoolId: school1.id,
+            },
+            {
+                name: "Riverdale Viewer",
+                email: "viewer@riverdalehigh.edu",
+                passwordHash: viewerPasswordHash,
+                role: "VIEWER",
+                schoolId: school1.id,
+            },
         ],
     });
 
@@ -91,6 +108,7 @@ async function main() {
             firstName: "John",
             lastName: "Smith",
             email: "john.smith@riverdalehigh.edu",
+            passwordHash: teacherPasswordHash,
             phone: "+1-555-1001",
             subject: "Mathematics",
             schoolId: school1.id,
@@ -102,6 +120,7 @@ async function main() {
             firstName: "Sarah",
             lastName: "Johnson",
             email: "sarah.johnson@greenvalley.edu",
+            passwordHash: teacherPasswordHash,
             phone: "+1-555-1002",
             subject: "English",
             schoolId: school2.id,
@@ -115,6 +134,7 @@ async function main() {
             grade: "10",
             section: "A",
             academicYear: "2025-2026",
+            feeAmount: 4500,
             schoolId: school1.id,
             teacherId: teacher1.id,
         },
@@ -126,6 +146,7 @@ async function main() {
             grade: "9",
             section: "B",
             academicYear: "2025-2026",
+            feeAmount: 3200,
             schoolId: school2.id,
             teacherId: teacher2.id,
         },
