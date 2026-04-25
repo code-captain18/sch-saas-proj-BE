@@ -1,0 +1,55 @@
+services:
+  - type: web
+    name: schoolflow-backend
+    runtime: node
+    plan: free
+    autoDeploy: true
+    rootDir: .
+    buildCommand: npm ci && npx prisma generate && npm run build
+    startCommand: npx prisma migrate deploy && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: AUTH_JWT_SECRET
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: SMS_USERNAME
+        sync: false
+      - key: SMS_PASSWORD
+        sync: false
+      - key: SMS_SENDER_ID
+        value: KGM
+      - key: SMS_API_URL
+        value: https://sms.nalosolutions.com/smsbackend/Resl_Nalo/send-message/
+      - key: DEFAULT_TEACHER_PASSWORD
+        sync: false
+      - key: OTP_SEND_WINDOW_MS
+        value: 900000
+      - key: OTP_SEND_COOLDOWN_MS
+        value: 90000
+      - key: OTP_VERIFY_WINDOW_MS
+        value: 900000
+      - key: OTP_SEND_IP_LIMIT
+        value: 15
+      - key: OTP_SEND_USER_LIMIT
+        value: 4
+      - key: OTP_VERIFY_IP_LIMIT
+        value: 25
+      - key: OTP_VERIFY_CHALLENGE_LIMIT
+        value: 5
+      - key: OTP_SEND_IP_BLOCK_MS
+        value: 1200000
+      - key: OTP_SEND_USER_BLOCK_MS
+        value: 900000
+      - key: OTP_VERIFY_BLOCK_MS
+        value: 1200000
