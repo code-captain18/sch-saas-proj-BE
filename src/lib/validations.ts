@@ -17,6 +17,7 @@ export const createSchoolSchema = z.object({
     address: z.string().max(255).optional(),
     phone: z.string().max(50).optional(),
     email: z.string().email("Invalid email address").optional().or(z.literal("")),
+    subscriptionMonthlyFee: z.coerce.number().min(0, "Monthly fee cannot be negative").optional(),
 });
 
 export const updateSchoolSchema = z.object({
@@ -25,6 +26,11 @@ export const updateSchoolSchema = z.object({
     address: z.string().max(255).optional(),
     phone: z.string().max(50).optional(),
     email: z.string().email("Invalid email address").optional().or(z.literal("")),
+    subscriptionMonthlyFee: z.coerce.number().min(0, "Monthly fee cannot be negative").optional(),
+});
+
+export const schoolSubscriptionPaymentSchema = z.object({
+    months: z.coerce.number().int().min(1, "Months must be at least 1").max(24, "Months cannot exceed 24").default(1),
 });
 
 // Student schemas

@@ -11,18 +11,22 @@ datasource db {
 }
 
 model School {
-    id             String   @id @default(cuid())
-    name           String
-    district       String
-    isActive       Boolean  @default(true)
-    address        String?
-    phone          String?
-    email          String?
-    logo           String?
-    totalStudents  Int      @default(0)
-    activeTeachers Int      @default(0)
-    createdAt      DateTime @default(now())
-    updatedAt      DateTime @updatedAt
+    id                      String    @id @default(cuid())
+    name                    String
+    district                String
+    isActive                Boolean   @default(true)
+    subscriptionStartedAt   DateTime  @default(now()) @map("subscription_started_at")
+    subscriptionTrialEndsAt DateTime? @map("subscription_trial_ends_at")
+    subscriptionPaidUntil   DateTime? @map("subscription_paid_until")
+    subscriptionMonthlyFee  Decimal   @default(0) @map("subscription_monthly_fee") @db.Decimal(10, 2)
+    address                 String?
+    phone                   String?
+    email                   String?
+    logo                    String?
+    totalStudents           Int       @default(0)
+    activeTeachers          Int       @default(0)
+    createdAt               DateTime  @default(now())
+    updatedAt               DateTime  @updatedAt
 
     students            Student[]
     teachers            Teacher[]
@@ -530,6 +534,7 @@ enum PaymentMethod {
 
 enum AdminRole {
     SUPER_ADMIN
+    PRINCIPAL
     SCHOOL_ADMIN
     ACCOUNTANT
     STAFF

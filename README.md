@@ -83,6 +83,13 @@ npm run db:seed
 npm run db:studio
 ```
 
+On Windows, Prisma can fail to replace `query_engine-windows.dll.node` if a dev server or another Node process is holding the file open. The backend scripts already avoid that by:
+
+- running `db:migrate` with `--skip-generate`
+- regenerating the client separately with `npm run db:generate`
+
+If you still see a Prisma `EPERM ... query_engine-windows.dll.node` error, stop any running backend process and rerun `npm run db:generate`.
+
 ## Development
 
 ```bash

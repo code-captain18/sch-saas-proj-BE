@@ -22,10 +22,15 @@ const limiterStore = new Map<string, LimiterState>();
 const cooldownStore = new Map<string, number>();
 
 const redisUrl = process.env.REDIS_URL?.trim();
+const isTestRunnerProcess = process.argv.some((arg) => arg === "--test" || arg.endsWith(".test.ts") || arg.endsWith(".test.js"));
+const forceInMemoryLimiter =
+    process.env.OTP_LIMITER_IN_MEMORY === "true" ||
+    process.env.NODE_ENV === "test" ||
+    isTestRunnerProcess;
 let redisClient: RedisClientType | null = null;
 let redisConnected = false;
 
-if (redisUrl) {
+if (redisUrl && !forceInMemoryLimiter) {
     redisClient = createClient({ url: redisUrl });
     redisClient.on("error", (err) => {
         redisConnected = false;
@@ -204,4 +209,19 @@ export function getRequestIp(req: express.Request): string {
 
     const candidate = req.ip || req.socket?.remoteAddress || "unknown";
     return String(candidate);
+}
+
+export async function shutdownOtpSecurity(): Promise<void> {
+    if (!redisClient) return;
+
+    try {
+        if (redisClient.isOpen) {
+            await redisClient.quit();
+        }
+    } catch {
+        // Ignore shutdown errors during test/process teardown.
+    } finally {
+        redisConnected = false;
+        redisClient = null;
+    }
 }
