@@ -39,6 +39,10 @@ import {
 const app = express();
 const port = Number(process.env.PORT ?? 4000);
 const frontendOrigin = process.env.FRONTEND_ORIGIN ?? "http://localhost:3000";
+const frontendOrigins = (process.env.FRONTEND_ORIGINS ?? frontendOrigin)
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
 const apiBodyLimit = process.env.API_BODY_LIMIT ?? "5mb";
 const jwtSecret = process.env.JWT_SECRET ?? process.env.AUTH_JWT_SECRET ?? "dev-only-change-me";
 const accessTokenTtl = "15m";
@@ -455,7 +459,22 @@ async function validateClassTeacherAssignments(params: {
     return { ok: true as const };
 }
 
-app.use(cors({ origin: frontendOrigin }));
+app.use(cors({
+    origin(origin, callback) {
+        // Allow non-browser/server-to-server calls with no Origin header.
+        if (!origin) {
+            callback(null, true);
+            return;
+        }
+
+        if (frontendOrigins.includes(origin)) {
+            callback(null, true);
+            return;
+        }
+
+        callback(new Error("Not allowed by CORS"));
+    },
+}));
 app.use(express.json({ limit: apiBodyLimit }));
 app.use(express.urlencoded({ extended: true, limit: apiBodyLimit }));
 
