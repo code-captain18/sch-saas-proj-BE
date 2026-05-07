@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import type express from "express";
+import { Prisma } from "@prisma/client";
 import prisma from "../lib/prisma.js";
 import { createTeacherSchema } from "../lib/validations.js";
 import type { AdminContext, AuditParams, Permission, RequestWithUser } from "../types/app-types.js";
@@ -415,11 +416,26 @@ export function createAdminManagementController(deps: AdminManagementControllerD
         const schoolId = context.schoolId;
         if (!schoolId) { res.status(400).json({ error: "No school scope" }); return; }
 
-        const settings = await prisma.schoolSettings.upsert({
-            where: { schoolId },
-            create: { schoolId, academicYear: "2025-2026" },
-            update: {},
-        });
+        let settings = await prisma.schoolSettings.findUnique({ where: { schoolId } });
+        if (!settings) {
+            try {
+                settings = await prisma.schoolSettings.create({
+                    data: { schoolId, academicYear: "2025-2026" },
+                });
+            } catch (error) {
+                const isUniqueSchoolSettingsConflict =
+                    error instanceof Prisma.PrismaClientKnownRequestError
+                    && error.code === "P2002";
+                if (!isUniqueSchoolSettingsConflict) {
+                    throw error;
+                }
+
+                settings = await prisma.schoolSettings.findUnique({ where: { schoolId } });
+                if (!settings) {
+                    throw error;
+                }
+            }
+        }
 
         const school = await prisma.school.findUnique({
             where: { id: schoolId },
@@ -439,20 +455,42 @@ export function createAdminManagementController(deps: AdminManagementControllerD
         const schoolId = context.schoolId;
         if (!schoolId) { res.status(400).json({ error: "No school scope" }); return; }
 
-        const updated = await prisma.schoolSettings.upsert({
-            where: { schoolId },
-            create: {
-                schoolId,
-                academicYear: req.body.academicYear ?? "2025-2026",
-                gradingConfig: req.body.gradingConfig ?? null,
-                feeCategories: req.body.feeCategories ?? null,
-            },
-            update: {
-                ...(req.body.academicYear !== undefined ? { academicYear: String(req.body.academicYear) } : {}),
-                ...(req.body.gradingConfig !== undefined ? { gradingConfig: req.body.gradingConfig } : {}),
-                ...(req.body.feeCategories !== undefined ? { feeCategories: req.body.feeCategories } : {}),
-            },
-        });
+        const updateData = {
+            ...(req.body.academicYear !== undefined ? { academicYear: String(req.body.academicYear) } : {}),
+            ...(req.body.gradingConfig !== undefined ? { gradingConfig: req.body.gradingConfig } : {}),
+            ...(req.body.feeCategories !== undefined ? { feeCategories: req.body.feeCategories } : {}),
+        };
+
+        let updated = await prisma.schoolSettings.findUnique({ where: { schoolId } });
+        if (updated) {
+            updated = await prisma.schoolSettings.update({
+                where: { schoolId },
+                data: updateData,
+            });
+        } else {
+            try {
+                updated = await prisma.schoolSettings.create({
+                    data: {
+                        schoolId,
+                        academicYear: req.body.academicYear ?? "2025-2026",
+                        gradingConfig: req.body.gradingConfig ?? null,
+                        feeCategories: req.body.feeCategories ?? null,
+                    },
+                });
+            } catch (error) {
+                const isUniqueSchoolSettingsConflict =
+                    error instanceof Prisma.PrismaClientKnownRequestError
+                    && error.code === "P2002";
+                if (!isUniqueSchoolSettingsConflict) {
+                    throw error;
+                }
+
+                updated = await prisma.schoolSettings.update({
+                    where: { schoolId },
+                    data: updateData,
+                });
+            }
+        }
 
         if (req.body.logo !== undefined) {
             await prisma.school.update({
