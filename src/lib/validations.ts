@@ -75,6 +75,7 @@ export const createTeacherSchema = z.object({
     email: z.string().email("Invalid email address"),
     phone: z.string().min(1, "Phone is required").max(20),
     subject: z.string().optional(),
+    role: z.enum(["PRINCIPAL", "ACCOUNTANT", "STAFF", "VIEWER"]).optional(),
     schoolId: z.string().min(1, "School ID is required"),
 });
 

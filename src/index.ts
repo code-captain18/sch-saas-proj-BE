@@ -85,12 +85,28 @@ const rolePermissions: Record<string, string[]> = {
         "reports:read",
         "audit:read",
     ],
-    ACCOUNTANT: ["fees:read", "fees:write", "reports:read", "audit:read"],
+    PRINCIPAL: [
+        "schools:read",
+        "schools:write",
+        "students:read",
+        "students:write",
+        "teachers:read",
+        "teachers:write",
+        "classes:read",
+        "classes:write",
+        "subjects:read",
+        "subjects:write",
+        "fees:read",
+        "fees:write",
+        "reports:read",
+        "audit:read",
+    ],
+    ACCOUNTANT: ["fees:read", "fees:write", "reports:read"],
     STAFF: ["students:read", "teachers:read", "classes:read", "subjects:read", "reports:read"],
     VIEWER: ["students:read", "teachers:read", "classes:read", "subjects:read", "fees:read", "reports:read", "audit:read"],
 };
 
-type Role = "SUPER_ADMIN" | "SCHOOL_ADMIN" | "ACCOUNTANT" | "STAFF" | "VIEWER";
+type Role = "SUPER_ADMIN" | "SCHOOL_ADMIN" | "PRINCIPAL" | "ACCOUNTANT" | "STAFF" | "VIEWER";
 type Permission =
     | "schools:read"
     | "schools:write"
@@ -156,7 +172,7 @@ async function createRefreshSession(userId: string, userType: "ADMIN_USER" | "TE
 }
 
 function isRole(value: string): value is Role {
-    return ["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT", "STAFF", "VIEWER"].includes(value);
+    return ["SUPER_ADMIN", "SCHOOL_ADMIN", "PRINCIPAL", "ACCOUNTANT", "STAFF", "VIEWER"].includes(value);
 }
 
 function resolveRequestedSchoolId(req: express.Request): string | null {
@@ -611,7 +627,7 @@ app.post("/api/auth/login", validateBody(loginSchema), async (req, res) => {
             action: "AUTH_LOGIN",
             entityType: "TeacherSession",
             schoolId: teacher.schoolId,
-            actorRole: "STAFF",
+            actorRole: teacher.role as Role,
             status: "FAILED",
             metadata: { email, reason: "teacher_inactive" },
         });
@@ -629,7 +645,7 @@ app.post("/api/auth/login", validateBody(loginSchema), async (req, res) => {
                 action: "AUTH_LOGIN",
                 entityType: "TeacherSession",
                 schoolId: teacher.schoolId,
-                actorRole: "STAFF",
+                actorRole: teacher.role as Role,
                 status: "FAILED",
                 metadata: { email, reason: "teacher_password_not_set" },
             });
@@ -651,7 +667,7 @@ app.post("/api/auth/login", validateBody(loginSchema), async (req, res) => {
             action: "AUTH_LOGIN",
             entityType: "TeacherSession",
             schoolId: teacher.schoolId,
-            actorRole: "STAFF",
+            actorRole: teacher.role as Role,
             status: "FAILED",
             metadata: { email, reason: "invalid_password" },
         });
@@ -661,7 +677,7 @@ app.post("/api/auth/login", validateBody(loginSchema), async (req, res) => {
 
     const accessToken = createAccessToken({
         id: teacher.id,
-        role: "STAFF",
+        role: teacher.role as Role,
         schoolId: teacher.schoolId,
         userType: "TEACHER",
     });
@@ -672,7 +688,7 @@ app.post("/api/auth/login", validateBody(loginSchema), async (req, res) => {
         action: "AUTH_LOGIN",
         entityType: "TeacherSession",
         schoolId: teacher.schoolId,
-        actorRole: "STAFF",
+        actorRole: teacher.role as Role,
         status: "SUCCESS",
         metadata: { email },
     });
@@ -729,7 +745,7 @@ app.post("/api/auth/login", validateBody(loginSchema), async (req, res) => {
             id: teacher.id,
             name: `${teacher.firstName} ${teacher.lastName}`,
             email: teacher.email,
-            role: "STAFF",
+            role: teacher.role,
             schoolId: teacher.schoolId,
         },
     });
@@ -770,7 +786,7 @@ app.post("/api/auth/refresh", validateBody(refreshTokenSchema), async (req, res)
         const newRefreshToken = await createRefreshSession(session.userId, sessionUserType);
         const accessToken = createAccessToken({
             id: teacher.id,
-            role: "STAFF",
+            role: teacher.role as Role,
             schoolId: teacher.schoolId,
             userType: sessionUserType,
         });
@@ -781,7 +797,7 @@ app.post("/api/auth/refresh", validateBody(refreshTokenSchema), async (req, res)
             entityType: "TeacherSession",
             schoolId: teacher.schoolId,
             actorUserId: null,
-            actorRole: "STAFF",
+            actorRole: teacher.role as Role,
             status: "SUCCESS",
         });
 
@@ -884,7 +900,7 @@ app.get("/api/auth/me", authenticate, async (req, res) => {
             id: teacher.id,
             name: `${teacher.firstName} ${teacher.lastName}`,
             email: teacher.email,
-            role: "STAFF",
+            role: teacher.role,
             schoolId: teacher.schoolId,
         });
         return;
@@ -957,9 +973,9 @@ app.post("/api/auth/verify-login-otp", async (req, res) => {
             res.status(404).json({ error: "User not found" });
             return;
         }
-        const accessToken = createAccessToken({ id: teacher.id, role: "STAFF", schoolId: teacher.schoolId, userType: "TEACHER" });
+        const accessToken = createAccessToken({ id: teacher.id, role: teacher.role as Role, schoolId: teacher.schoolId, userType: "TEACHER" });
         const refreshToken = await createRefreshSession(teacher.id, "TEACHER");
-        res.json({ accessToken, refreshToken, user: { id: teacher.id, name: `${teacher.firstName} ${teacher.lastName}`, email: teacher.email, role: "STAFF", schoolId: teacher.schoolId } });
+        res.json({ accessToken, refreshToken, user: { id: teacher.id, name: `${teacher.firstName} ${teacher.lastName}`, email: teacher.email, role: teacher.role, schoolId: teacher.schoolId } });
         return;
     }
 
@@ -1620,6 +1636,7 @@ app.post("/api/admin/teachers", validateBody(createTeacherSchema), async (req, r
             passwordHash: defaultTeacherPasswordHash,
             phone: req.body.phone,
             subject: req.body.subject,
+            role: req.body.role ?? "STAFF",
             schoolId,
         },
     });
@@ -3413,6 +3430,12 @@ app.patch("/api/admin/teachers/:id", async (req, res) => {
     const context = authorize(req, res, "teachers:write");
     if (!context) return;
 
+    const allowedTeacherRoles = new Set(["PRINCIPAL", "ACCOUNTANT", "STAFF", "VIEWER"]);
+    if (req.body.role !== undefined && !allowedTeacherRoles.has(String(req.body.role))) {
+        res.status(400).json({ error: "Invalid teacher role" });
+        return;
+    }
+
     const teacherId = req.params.id;
     const existing = await prisma.teacher.findUnique({ where: { id: teacherId } });
     if (!existing) { res.status(404).json({ error: "Teacher not found" }); return; }
@@ -3436,6 +3459,7 @@ app.patch("/api/admin/teachers/:id", async (req, res) => {
             ...(req.body.email ? { email: String(req.body.email) } : {}),
             ...(req.body.phone !== undefined ? { phone: req.body.phone || null } : {}),
             ...(req.body.subject !== undefined ? { subject: req.body.subject || null } : {}),
+            ...(req.body.role !== undefined ? { role: String(req.body.role) as "PRINCIPAL" | "ACCOUNTANT" | "STAFF" | "VIEWER" } : {}),
         },
     });
 
@@ -3494,6 +3518,7 @@ app.post("/api/admin/teachers/import", async (req, res) => {
         email?: string;
         phone?: string;
         subject?: string;
+        role?: "PRINCIPAL" | "ACCOUNTANT" | "STAFF" | "VIEWER";
     }> = req.body.rows ?? [];
     if (!Array.isArray(rows) || rows.length === 0) { res.status(400).json({ error: "No rows provided" }); return; }
 
@@ -3520,6 +3545,7 @@ app.post("/api/admin/teachers/import", async (req, res) => {
             email: r.email ?? "",
             phone: r.phone ?? "",
             subject: r.subject ?? "",
+            role: r.role ?? "STAFF",
             schoolId,
         });
 
@@ -3550,6 +3576,7 @@ app.post("/api/admin/teachers/import", async (req, res) => {
                     passwordHash: defaultTeacherPasswordHash,
                     phone: validation.data.phone,
                     subject: validation.data.subject || null,
+                    role: validation.data.role ?? "STAFF",
                     schoolId,
                 },
             });

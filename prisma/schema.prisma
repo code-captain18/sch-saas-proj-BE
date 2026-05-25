@@ -93,6 +93,7 @@ model Teacher {
     passwordHash          String?
     phone                 String?
     subject               String?
+    role                  AdminRole     @default(STAFF)
     hireDate              DateTime      @default(now())
     status                TeacherStatus @default(ACTIVE)
     schoolId              String
@@ -531,6 +532,7 @@ enum PaymentMethod {
 enum AdminRole {
     SUPER_ADMIN
     SCHOOL_ADMIN
+    PRINCIPAL
     ACCOUNTANT
     STAFF
     VIEWER
